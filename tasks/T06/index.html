@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>T06 小伙伴需要什么</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="assessment" aria-label="T06 小伙伴需要什么：需要识别与支持反应">
+    <section id="stage" class="stage" aria-live="polite">
+      <video id="video" class="media" playsinline preload="auto"></video>
+      <img id="questionFrame" class="media question-frame" alt="" draggable="false">
+      <div id="hotspots" class="hotspots" aria-label="请选择一个选项"></div>
+      <button id="startButton" class="start-button" type="button">开始</button>
+      <div id="status" class="status" role="status"></div>
+    </section>
+  </main>
+  <audio id="promptAudio" preload="auto"></audio>
+  <script src="app.js"></script>
+</body>
+</html>

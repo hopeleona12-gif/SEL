@@ -1,0 +1,11 @@
+.env
+.git
+.gitignore
+node_modules
+**/node_modules
+*.log
+tasks/*/.agents
+tasks/*/.codex
+tasks/T03/database/*.db
+tasks/T03/outputs
+tasks/T03/work

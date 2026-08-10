@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>T08 轮到你啦</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app">
+  <section id="stage" aria-live="polite">
+    <div id="mediaCanvas">
+      <img id="frame" src="assets/T08-P1.png" alt="T08互动场景">
+      <video id="video" playsinline preload="metadata"></video>
+      <audio id="audio" preload="metadata"></audio>
+      <div id="hotspots" aria-label="图片回答选项"></div>
+      <div id="turnCue" aria-hidden="true"></div>
+      <div id="responseControls">
+        <button id="speak" type="button">说一句</button>
+        <button id="pictureAnswer" type="button" disabled>图片回答</button>
+      </div>
+      <button id="start" type="button">开始</button>
+      <div id="recordingState" aria-live="polite"></div>
+    </div>
+  </section>
+  <aside id="researcherPanel" hidden>
+    <header class="researchHead">
+      <div><h2>T08 语音评分与复核</h2><p>仅研究人员可见；人工结果与 AI 原始结果分别保存。</p></div>
+      <div class="headActions"><button id="refreshPanel" type="button">刷新</button><button id="closePanel" type="button">关闭</button></div>
+    </header>
+    <section id="scoreSummary" class="scoreSummary"></section>
+    <div class="panelTitle">研究员面板</div>
+    <div id="panelStatus"></div>
+    <section id="conversationOverview" class="conversationOverview"></section>
+    <section id="reviewList" class="reviewList"></section>
+    <div class="panelActions">
+      <button id="codeRelevant" type="button">语音相关</button>
+      <button id="codeIrrelevant" type="button">语音无关</button>
+      <button id="codeInv" type="button">INV</button>
+      <button id="applyP2" type="button">人工P2</button>
+      <button id="applyP3" type="button">人工P3</button>
+      <button id="resolveNoResponse" type="button">无回应0分并继续</button>
+      <button id="download" type="button">导出JSON</button>
+    </div>
+    <pre id="log"></pre>
+  </aside>
+</main>
+<script src="shared/voice-client.js"></script>
+<script src="shared/t08-voice-policy.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

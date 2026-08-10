@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>T02 我能自己解决吗</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="override.css" />
+</head>
+<body>
+  <main id="app" aria-live="polite">
+    <section id="setup" class="screen setup">
+      <div class="setup-card">
+        <div class="eyebrow">特殊儿童 SEL · T02</div>
+        <h1>我能自己解决吗</h1>
+        <p>困难与能力边界觉察</p>
+        <label>儿童编号<input id="childId" value="child001" maxlength="40" autocomplete="off" /></label>
+        <button id="startBtn" class="primary">开始任务</button>
+      </div>
+    </section>
+
+    <section id="stage" class="screen hidden">
+      <img id="sceneImage" class="scene-image" alt="任务画面" draggable="false" />
+      <video id="sceneVideo" class="scene-video hidden" playsinline preload="auto"></video>
+      <div id="overlay"></div>
+      <div class="topbar"><span id="stepLabel">T02</span><span id="progressText"></span></div>
+      <div id="prompt" class="prompt"></div>
+      <div id="cards" class="cards hidden"></div>
+      <div id="responseDock" class="response-dock hidden">
+        <div id="voiceStatus" class="voice-status"></div>
+        <button id="voiceEntry" aria-label="说一说">🎤<span>说一说</span></button>
+        <button id="pictureEntry" aria-label="图片回答">🖼<span>图片回答</span></button>
+      </div>
+      <button id="micBtn" class="mic hidden" aria-label="点击录音"><span>🎙</span><small>说一说</small></button>
+      <button id="stopBtn" class="stop hidden" tabindex="-1">停止</button>
+      <button id="nextBtn" class="next hidden">继续</button>
+    </section>
+
+    <section id="result" class="screen result hidden">
+      <div class="result-card">
+        <div class="eyebrow">T02 已完成</div>
+        <h1>T02完成，谢谢你的参与。</h1>
+        <p class="privacy">你的回答已经保存。</p>
+        <div class="result-actions developer-tools"><button id="exportBtn" class="primary">导出T02数据JSON</button><button id="audioBtn">导出全部录音</button><button id="reviewBtn">研究人员复核</button><button id="restartBtn">重新开始</button></div>
+      </div>
+    </section>
+    <aside id="researchPanel" class="research-panel hidden" aria-label="研究人员语音复核面板">
+      <div class="research-head"><h2>T02语音复核</h2><div><button id="refreshReviews">刷新</button><button id="closeReviews">关闭</button></div></div>
+      <p class="research-note">仅测试人员可见。人工结果与AI原始结果分别保存，不会互相覆盖。</p>
+      <div id="reviewList" class="review-list"></div>
+    </aside>
+  </main>
+  <script src="shared/voice-client.js"></script>
+  <script src="shared/t02-voice-policy.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

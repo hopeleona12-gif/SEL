@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7efe1" />
+    <title>T03 安静课堂视觉原型</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="storybook" aria-label="T03规则抑制任务">
+        <div class="scene" id="scene">
+          <img
+            id="scene-image"
+            class="scene-image"
+            src="./assets/classroom_quiet.png"
+            alt="安静明亮的儿童教室"
+          />
+          <img
+            id="character-image"
+            class="character-image"
+            src="./assets/practice_idle.png"
+            alt=""
+          />
+          <div class="scene-wash" aria-hidden="true"></div>
+
+          <header class="task-header">
+            <span class="task-chip" id="task-chip">听声音找星星</span>
+            <span class="progress-dots" id="progress-dots" aria-hidden="true"></span>
+          </header>
+
+          <div class="distractor is-hidden" id="distractor" aria-hidden="true">
+            <img
+              id="distractor-start"
+              class="distractor-frame"
+              src="./assets/monkey_walk_start.png"
+              alt=""
+            />
+            <img
+              id="distractor-end"
+              class="distractor-frame distractor-frame-end"
+              src="./assets/monkey_walk_end.png"
+              alt=""
+            />
+          </div>
+
+          <div class="star-stage is-hidden" id="star-stage">
+            <button
+              class="star-hit-area"
+              id="star-button"
+              type="button"
+              aria-label="点击星星"
+              disabled
+            >
+              <img
+                id="star-image"
+                class="star-image"
+                src="./assets/star_idle.png"
+                alt=""
+              />
+            </button>
+          </div>
+
+          <section class="state-card" id="state-card">
+            <p class="eyebrow" id="card-eyebrow">安静课堂</p>
+            <h1 id="card-title">听到“咚”再点击</h1>
+            <p class="lead" id="card-text">
+              小朋友，我们来玩一个听声音找星星的游戏。
+            </p>
+            <button class="primary-button" id="card-button" type="button">
+              开始游戏
+            </button>
+          </section>
+        </div>
+
+        <footer class="prompt-panel" aria-live="polite" aria-atomic="true">
+          <p class="prompt-kicker" id="prompt-kicker">准备好了吗？</p>
+          <p class="prompt-text" id="prompt-text">坐舒服，仔细听声音。</p>
+          <button class="primary-button is-hidden" id="action-button" type="button"></button>
+        </footer>
+      </section>
+    </main>
+    <script src="./script.js"></script>
+  </body>
+</html>

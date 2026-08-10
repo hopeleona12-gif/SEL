@@ -1,0 +1,24 @@
+(() => {
+  const key = 'sel.report.session';
+  const map = { self_awareness: ['T02', 'T01_A', 'T01_B'], self_management: ['T03', 'T04'], social_awareness: ['T05', 'T06'], relationship_skills: ['T07', 'T08'], responsible_decision: ['T09', 'T10'] };
+  const labels = { self_awareness: '自我意识', self_management: '自我管理', social_awareness: '社会意识', relationship_skills: '关系技能', responsible_decision: '负责任决策' };
+  const templates = { self_awareness: '继续鼓励儿童说出自己的感受，并尝试说明是什么事情带来这种感受。', self_management: '任务前先用简短规则和视觉提示帮助儿童准备，受阻时给出短暂停顿和重新尝试的机会。', social_awareness: '在日常活动中练习识别他人的需要，并把需要和具体帮助方式联系起来。', relationship_skills: '通过轮流、等待、询问和根据同伴回应调整行动，练习更清楚、友好的互动。', responsible_decision: '在生活故事中练习识别问题、比较不同做法，并说出做法可能带来的直接结果。' };
+  const read = () => JSON.parse(localStorage.getItem(key) || '{"tasks":{},"participant":{}}');
+  const save = (s) => localStorage.setItem(key, JSON.stringify(s));
+  const score = (t) => typeof t?.score === 'number' ? t.score : null;
+  const dimension = (ids, tasks) => { const values = ids.map((id) => score(tasks[id])).filter((v) => typeof v === 'number'); return values.length >= 1 ? Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)) : null; };
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function render(s) {
+    const dims = Object.fromEntries(Object.entries(map).map(([k, ids]) => [k, dimension(ids, s.tasks || {})]));
+    const vals = Object.values(dims).filter((v) => typeof v === 'number'); const total = vals.length === 5 ? Number((vals.reduce((a, b) => a + b, 0) / 5).toFixed(2)) : null;
+    const strengths = Object.entries(dims).filter(([, v]) => typeof v === 'number').sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => labels[k]);
+    const needs = Object.entries(dims).filter(([, v]) => typeof v === 'number').sort((a, b) => a[1] - b[1]).slice(0, 2).map(([k]) => labels[k]);
+    const tasks = Object.entries(s.tasks || {}).map(([id, t]) => `<tr><td>${esc(id.replace('_','-'))}</td><td>${typeof t.score === 'number' ? t.score : '未测评'}</td><td>${t.score_status === 'score_missing' ? '数据不足' : '已完成'}</td></tr>`).join('');
+    const report = document.querySelector('.completion'); if (!report) return;
+    report.className = 'report-v1'; report.innerHTML = `<header><h1>SEL社会情感学习测评报告</h1><p>本报告用于了解本次任务中的表现，不作诊断或常模判断。</p></header><section class="report-overview"><h2>测评概览</h2><p>儿童编号：${esc(s.participant?.id || '未记录')}</p><p>年龄：${esc(s.participant?.age || '未记录')}</p><p>完成时间：${esc(s.session?.end_time || new Date().toLocaleString())}</p><p>SEL总分：${total === null ? '数据不足，暂不生成' : total}</p></section><section><h2>五维表现</h2><div class="report-dimensions">${Object.entries(dims).map(([k, v]) => `<div><strong>${labels[k]}</strong><span>${v === null ? '未测评' : v}</span></div>`).join('')}</div><div class="report-radar">${Object.entries(dims).map(([k, v], i) => `<span style="--i:${i};--v:${v === null ? 0 : v / 2}" title="${labels[k]}：${v === null ? '未测评' : v}"></span>`).join('')}</div></section><section><h2>任务表现</h2><table><thead><tr><th>任务</th><th>得分</th><th>状态</th></tr></thead><tbody>${tasks}</tbody></table></section><section><h2>相对优势</h2><p>${strengths.length ? strengths.join('、') : '有效数据不足，暂不判断。'}</p><h2>需要支持的能力</h2><p>${needs.length ? needs.join('、') : '有效数据不足，暂不判断。'}</p><h2>教育支持建议</h2>${needs.length ? needs.map((name) => `<p>${Object.entries(labels).find(([, v]) => v === name)?.[0] ? templates[Object.entries(labels).find(([, v]) => v === name)[0]] : ''}</p>`).join('') : '<p>数据不足，暂不生成建议。</p>'}</section><footer><button id="report-json">导出原始JSON</button><button id="report-print">打印/保存报告</button><small>session_id：${esc(s.session?.session_id || '')}</small></footer>`;
+    document.querySelector('#report-json').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' })); a.download = 'SEL_report_raw.json'; a.click(); };
+    document.querySelector('#report-print').onclick = () => window.print();
+  }
+  window.addEventListener('message', (e) => { const d = e.data || {}; if (!['TASK_COMPLETE','SEL_T01_COMPLETE','SEL_ASSESSMENT_COMPLETE'].includes(d.type)) return; const s = read(); const id = String(d.taskId || d.task_id || d.payload?.task || '').replace('-', '_'); s.tasks[id] = { ...(s.tasks[id] || {}), ...(d.result || d.payload || {}) }; save(s); });
+  new MutationObserver(() => { const s = read(); if (document.querySelector('.completion') && Object.keys(s.tasks || {}).length) render(s); }).observe(document.body, { childList: true, subtree: true });
+})();

@@ -1,0 +1,51 @@
+{
+  "task_id": "T03",
+  "name": "规则抑制任务",
+  "dimension": "self_management",
+  "config_version": "3.1.0",
+  "scoring_strategy": "t03_go_nogo",
+  "scoring_version": "1.0.0",
+  "response_type": "single_click",
+  "trial_order_strategy": "fixed_demo",
+  "condition_order": ["quiet", "distractor"],
+  "assets": {
+    "rule_video": "/assets/tasks/T03/T03_00_rule_final.mp4",
+    "practice_idle": "/assets/tasks/T03/practice_idle.png",
+    "practice_active": "/assets/tasks/T03/practice_active.png",
+    "test_idle": "/assets/tasks/T03/test_idle.png",
+    "test_active": "/assets/tasks/T03/test_active.png",
+    "scene_background": "/assets/tasks/T03/scene_background.png",
+    "star_idle": "/assets/tasks/T03/star_idle.png",
+    "star_active": "/assets/tasks/T03/star_active.png",
+    "dong_audio": "/assets/tasks/T03/dong.mp3",
+    "ding_audio": "/assets/tasks/T03/ding.mp3",
+    "practice_intro_audio": "/assets/tasks/T03/practice_intro_voice.mp3",
+    "formal_intro_audio": "/assets/tasks/T03/formal_intro_voice.mp3",
+    "practice_correct_audio": "/assets/tasks/T03/practice_correct_voice.mp3"
+  },
+  "timing": {
+    "pre_stimulus_ms": 300,
+    "response_window_ms": 1500,
+    "inter_trial_interval_ms": 500,
+    "inter_trial_interval_max_ms": 800,
+    "condition_transition_ms": 900
+  },
+  "practice_trials": [
+    {"trial_id": "practice_01", "condition": "quiet", "stimulus": "dong"},
+    {"trial_id": "practice_02", "condition": "quiet", "stimulus": "ding"}
+  ],
+  "test_trials": [
+    {"trial_id": "quiet_01", "condition": "quiet", "stimulus": "dong"},
+    {"trial_id": "quiet_02", "condition": "quiet", "stimulus": "dong"},
+    {"trial_id": "quiet_03", "condition": "quiet", "stimulus": "ding"},
+    {"trial_id": "quiet_04", "condition": "quiet", "stimulus": "dong"},
+    {"trial_id": "quiet_05", "condition": "quiet", "stimulus": "dong"},
+    {"trial_id": "quiet_06", "condition": "quiet", "stimulus": "dong"},
+    {"trial_id": "distractor_01", "condition": "distractor", "stimulus": "ding", "distractor_video": "/assets/tasks/T03/distractor_01.mp4"},
+    {"trial_id": "distractor_02", "condition": "distractor", "stimulus": "dong", "distractor_video": "/assets/tasks/T03/distractor_02.mp4"},
+    {"trial_id": "distractor_03", "condition": "distractor", "stimulus": "dong", "distractor_video": "/assets/tasks/T03/distractor_03.mp4"},
+    {"trial_id": "distractor_04", "condition": "distractor", "stimulus": "dong", "distractor_video": "/assets/tasks/T03/distractor_04.mp4"},
+    {"trial_id": "distractor_05", "condition": "distractor", "stimulus": "ding", "distractor_video": "/assets/tasks/T03/distractor_05.mp4"},
+    {"trial_id": "distractor_06", "condition": "distractor", "stimulus": "dong", "distractor_video": "/assets/tasks/T03/distractor_01.mp4"}
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "name": "t02-qwen-omni-demo",
+  "version": "4.0.0",
+  "private": true,
+  "scripts": { "start": "node server.js", "check": "node --check server.js && node --check app.js && node --check shared/voice-client.js && node --check shared/voice-scoring-service.js && node --check shared/t02-voice-policy.js", "test": "node tests/voice-service.test.js && node tests/voice-policy.test.js" },
+  "engines": { "node": ">=18" }
+}

@@ -1,0 +1,6 @@
+{
+  "version": "1.0.0",
+  "note": "阈值实现位于 reports/generators/sel_report.py；本文件用于后续研究版本配置化。",
+  "no_go_thresholds": {"high": 0.8, "medium": 0.6},
+  "go_support_threshold": 0.6
+}
