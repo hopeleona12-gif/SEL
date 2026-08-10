@@ -57,7 +57,7 @@ async function stopVoiceRecording(){
   record.turn_recognition_score=computeTurnRecognition(record);
   if(steps[current].kind==='practice'){scoreRecord(record,1);finalizeRecord(record);return}
   try{
-    const result=await SELVoice.requestScore('/api/voice/score-audio',{participant_id:baseRecord.participant_id,session_id:sessionId,task_id:'T08',condition:record.condition,turn_id:record.turn_id,question:T08VoicePolicy.TURNS[record.turn_id].question,audio_start_time:captured.audio_start_time,audio_end_time:captured.audio_end_time,audio_duration:captured.duration_ms,prompt_level:record.prompt_level,turn_recognition_score:record.turn_recognition_score},pendingVoiceBlob);
+    const result=await SELVoice.requestScore('api/voice/score-audio',{participant_id:baseRecord.participant_id,session_id:sessionId,task_id:'T08',condition:record.condition,turn_id:record.turn_id,question:T08VoicePolicy.TURNS[record.turn_id].question,audio_start_time:captured.audio_start_time,audio_end_time:captured.audio_end_time,audio_duration:captured.duration_ms,prompt_level:record.prompt_level,turn_recognition_score:record.turn_recognition_score},pendingVoiceBlob);
     applyAiResult(record,result);
   }catch(error){record.api_error=String(error.message||error);record.valid_status='MANUAL_REVIEW';record.review_status='manual_review';records.push(record);calculateScores();refreshPanel();setTimeout(()=>beginStep(steps[current].next),1200)}
 }

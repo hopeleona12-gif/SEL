@@ -191,11 +191,14 @@ async function saveReview(req, res, id) {
   json(res, 200, record);
 }
 
-function serveFile(res, file) {
+function serveFile(req, res, file) {
   const types = { ".html":"text/html; charset=utf-8", ".js":"text/javascript; charset=utf-8", ".css":"text/css; charset=utf-8", ".png":"image/png", ".jpg":"image/jpeg", ".jpeg":"image/jpeg", ".mp3":"audio/mpeg", ".mp4":"video/mp4", ".webm":"audio/webm", ".wav":"audio/wav" };
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404); return res.end("Not found"); }
-  res.writeHead(200, { "Content-Type": types[path.extname(file).toLowerCase()] || "application/octet-stream", "Cache-Control": "no-cache" });
-  fs.createReadStream(file).pipe(res);
+  const ext = path.extname(file).toLowerCase(), stat = fs.statSync(file), type = types[ext] || "application/octet-stream";
+  const headers = { "Content-Type": type, "Cache-Control": file.includes(`${path.sep}assets${path.sep}`) ? "public, max-age=604800" : "no-cache", "Accept-Ranges": "bytes" };
+  const match = String(req.headers.range || "").match(/^bytes=(\d*)-(\d*)$/);
+  if (match) { const start = match[1] ? Number(match[1]) : 0, end = match[2] ? Math.min(Number(match[2]), stat.size - 1) : stat.size - 1; if (start > end || start >= stat.size) { res.writeHead(416, { "Content-Range": `bytes */${stat.size}` }); return res.end(); } res.writeHead(206, { ...headers, "Content-Range": `bytes ${start}-${end}/${stat.size}`, "Content-Length": end - start + 1 }); return fs.createReadStream(file, { start, end }).pipe(res); }
+  res.writeHead(200, { ...headers, "Content-Length": stat.size }); fs.createReadStream(file).pipe(res);
 }
 
 const server = http.createServer(async (req, res) => {
@@ -206,11 +209,11 @@ const server = http.createServer(async (req, res) => {
     const reviewMatch = url.pathname.match(/^\/api\/(?:t02|voice)\/reviews\/([a-zA-Z0-9_-]+)$/);
     if (req.method === "POST" && reviewMatch) return await saveReview(req, res, reviewMatch[1]);
     const audioMatch = url.pathname.match(/^\/data\/audio\/([a-zA-Z0-9_.-]+)$/);
-    if (req.method === "GET" && audioMatch) return serveFile(res, path.join(AUDIO_DIR, path.basename(audioMatch[1])));
+    if (req.method === "GET" && audioMatch) return serveFile(req, res, path.join(AUDIO_DIR, path.basename(audioMatch[1])));
     const relative = decodeURIComponent(url.pathname === "/" ? "/index.html" : url.pathname);
     const file = path.resolve(ROOT, `.${relative}`);
     if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end("Forbidden"); }
-    serveFile(res, file);
+    serveFile(req, res, file);
   } catch (error) { json(res, 500, { error: String(error.message || error) }); }
 });
 
