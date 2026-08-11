@@ -1,4 +1,4 @@
-const API = 'http://localhost:8000/api/v1'
+const API = '/api/v1'
 async function request<T>(path:string, init?:RequestInit):Promise<T>{
   const response=await fetch(`${API}${path}`,{headers:{'Content-Type':'application/json'},...init})
   if(!response.ok) throw new Error((await response.json()).detail ?? '请求失败')

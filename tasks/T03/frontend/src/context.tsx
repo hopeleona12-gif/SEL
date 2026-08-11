@@ -7,7 +7,7 @@ export function AssessmentProvider({children}:{children:ReactNode}){
   useEffect(() => {
     if (!sessionId) return
     const abortOnUnload = () => {
-      navigator.sendBeacon(`http://localhost:8000/api/v1/assessments/${sessionId}/abort`)
+      navigator.sendBeacon(`/api/v1/assessments/${sessionId}/abort`)
     }
     window.addEventListener('beforeunload', abortOnUnload)
     return () => window.removeEventListener('beforeunload', abortOnUnload)
