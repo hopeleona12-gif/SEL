@@ -13,6 +13,7 @@
     const detail = id === 'T01_A' || id === 'T01_B' ? `情绪：${value.emotion?.score ?? '未测'}；原因：${value.cause?.score ?? '未测'}` : id === 'T03' ? `安静：${value.quiet_score ?? '未测'}；干扰：${value.distractor_score ?? '未测'}` : id === 'T06' ? `A：${value.T06A_score ?? '未测'}；B：${value.T06B_score ?? '未测'}` : '';
     card.innerHTML = `<h4>刚完成：${esc(id)}</h4><div>任务得分：<strong>${esc(score == null ? 'score_missing' : score)}</strong></div><div>状态：${esc(status)}</div>${detail ? `<div>${detail}</div>` : ''}${transcript ? `<div class="debug-score-transcript">语音：${esc(transcript)}</div>` : ''}`;
   };
+  window.addEventListener('MASTER_TASK_SAVED', (e) => { const d = e.detail || {}; showLatest(String(d.taskId || '').replaceAll('-', '_'), d.result || {}); });
   const render = () => {
     const raw = JSON.parse(localStorage.getItem(key) || '{"tasks":{}}'); const tasks = raw.tasks || {};
     const ids = ['T02','T03','T04','T01_A','T06','T05','T07','T08','T01_B','T09','T10'];
@@ -23,7 +24,7 @@
   };
   window.addEventListener('message', (e) => { const d = e.data || {}; if (!['TASK_COMPLETE', 'SEL_T01_COMPLETE', 'SEL_ASSESSMENT_COMPLETE'].includes(d.type)) return; const s = JSON.parse(localStorage.getItem(key) || '{"tasks":{}}'); const id = String(d.taskId || d.task_id || d.payload?.task || '').replaceAll('-', '_'); const value = { ...(s.tasks[id] || {}), ...(d.result || d.payload || {}) }; s.tasks[id] = value; localStorage.setItem(key, JSON.stringify(s)); showLatest(id, value); if (location.hash === '#score-check') render(); });
   let lastSeen = {};
-  setInterval(() => { if (location.hash === '#score-check') return; const s = JSON.parse(localStorage.getItem(key) || '{"tasks":{}}'); Object.entries(s.tasks || {}).forEach(([id, value]) => { if (value?.end_time && value.end_time !== lastSeen[id]) { lastSeen[id] = value.end_time; showLatest(id, value); } }); }, 400);
+  setInterval(() => { const s = JSON.parse(localStorage.getItem(key) || '{"tasks":{}}'); Object.entries(s.tasks || {}).forEach(([id, value]) => { if (value?.end_time && value.end_time !== lastSeen[id]) { lastSeen[id] = value.end_time; showLatest(id, value); } }); }, 400);
   const install = () => { const shell = document.querySelector('.task-shell'); if (!shell || shell.dataset.pauseInstalled) return; shell.dataset.pauseInstalled = '1'; const b = document.createElement('button'); b.className = 'master-pause'; b.textContent = '暂停'; shell.append(b); const o = document.createElement('div'); o.className = 'master-pause-overlay'; o.hidden = true; o.innerHTML = '<div><strong>测评已暂停</strong><button>继续</button></div>'; document.body.append(o); const toggle = () => { o.hidden = !o.hidden; b.textContent = o.hidden ? '暂停' : '继续'; shell.querySelector('iframe')?.contentWindow?.postMessage({ source: 'sel-master', type: o.hidden ? 'RESUME' : 'PAUSE' }, '*'); }; b.onclick = toggle; o.querySelector('button').onclick = toggle; };
   new MutationObserver(install).observe(document.body, { childList: true, subtree: true });
   if (location.hash === '#score-check') setTimeout(render, 400);
