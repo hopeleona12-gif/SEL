@@ -15,4 +15,18 @@
   const install = () => { const shell = document.querySelector('.task-shell'); if (!shell || shell.dataset.pauseInstalled) return; shell.dataset.pauseInstalled = '1'; const b = document.createElement('button'); b.className = 'master-pause'; b.textContent = '暂停'; shell.append(b); const o = document.createElement('div'); o.className = 'master-pause-overlay'; o.hidden = true; o.innerHTML = '<div><strong>测评已暂停</strong><button>继续</button></div>'; document.body.append(o); const toggle = () => { o.hidden = !o.hidden; b.textContent = o.hidden ? '暂停' : '继续'; shell.querySelector('iframe')?.contentWindow?.postMessage({ source: 'sel-master', type: o.hidden ? 'RESUME' : 'PAUSE' }, '*'); }; b.onclick = toggle; o.querySelector('button').onclick = toggle; };
   new MutationObserver(install).observe(document.body, { childList: true, subtree: true });
   if (location.hash === '#score-check') setTimeout(render, 400);
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement) || target.textContent?.trim() !== '继续') return;
+    const overlay = target.closest('.master-pause-overlay');
+    if (!overlay) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    overlay.hidden = true;
+    overlay.style.pointerEvents = 'none';
+    const shell = document.querySelector('.task-shell');
+    const pause = shell?.querySelector('.master-pause');
+    if (pause) pause.textContent = '暂停';
+    shell?.querySelector('iframe')?.contentWindow?.postMessage({ source: 'sel-master', type: 'RESUME' }, '*');
+  }, true);
 })();
