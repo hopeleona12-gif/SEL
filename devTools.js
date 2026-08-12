@@ -14,6 +14,7 @@
     card.innerHTML = `<h4>刚完成：${esc(id)}</h4><div>任务得分：<strong>${esc(score == null ? 'score_missing' : score)}</strong></div><div>状态：${esc(status)}</div>${detail ? `<div>${detail}</div>` : ''}${transcript ? `<div class="debug-score-transcript">语音：${esc(transcript)}</div>` : ''}`;
   };
   window.addEventListener('MASTER_TASK_SAVED', (e) => { const d = e.detail || {}; showLatest(String(d.taskId || '').replaceAll('-', '_'), d.result || {}); });
+  window.addEventListener('MASTER_TASK_STARTED', () => { const overlay = document.querySelector('.master-pause-overlay'); const button = document.querySelector('.master-pause'); if (overlay) { overlay.hidden = true; overlay.style.pointerEvents = 'none'; } if (button) button.textContent = '暂停'; });
   const render = () => {
     const raw = JSON.parse(localStorage.getItem(key) || '{"tasks":{}}'); const tasks = raw.tasks || {};
     const ids = ['T02','T03','T04','T01_A','T06','T05','T07','T08','T01_B','T09','T10'];
