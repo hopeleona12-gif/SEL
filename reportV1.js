@@ -1,24 +1,79 @@
 (() => {
-  const key = 'sel.report.session';
-  const map = { self_awareness: ['T02', 'T01_A', 'T01_B'], self_management: ['T03', 'T04'], social_awareness: ['T05', 'T06'], relationship_skills: ['T07', 'T08'], responsible_decision: ['T09', 'T10'] };
-  const labels = { self_awareness: '自我意识', self_management: '自我管理', social_awareness: '社会意识', relationship_skills: '关系技能', responsible_decision: '负责任决策' };
-  const templates = { self_awareness: '继续鼓励儿童说出自己的感受，并尝试说明是什么事情带来这种感受。', self_management: '任务前先用简短规则和视觉提示帮助儿童准备，受阻时给出短暂停顿和重新尝试的机会。', social_awareness: '在日常活动中练习识别他人的需要，并把需要和具体帮助方式联系起来。', relationship_skills: '通过轮流、等待、询问和根据同伴回应调整行动，练习更清楚、友好的互动。', responsible_decision: '在生活故事中练习识别问题、比较不同做法，并说出做法可能带来的直接结果。' };
-  const read = () => JSON.parse(localStorage.getItem(key) || '{"tasks":{},"participant":{},"session":{}}');
-  const save = (s) => localStorage.setItem(key, JSON.stringify(s));
-  const score = (t) => typeof t?.score === 'number' ? t.score : typeof t?.T02_total_score === 'number' ? t.T02_total_score : typeof t?.T08_total_score === 'number' ? t.T08_total_score : typeof t?.task_score === 'number' ? t.task_score : null;
-  const dimension = () => null;
-  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  function render(s) {
-    const dims = Object.fromEntries(Object.entries(map).map(([k, ids]) => [k, dimension(ids, s.tasks || {})]));
-    const vals = Object.values(dims).filter((v) => typeof v === 'number'); const total = vals.length === 5 ? Number((vals.reduce((a, b) => a + b, 0) / 5).toFixed(2)) : null;
-    const strengths = Object.entries(dims).filter(([, v]) => typeof v === 'number').sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => labels[k]);
-    const needs = Object.entries(dims).filter(([, v]) => typeof v === 'number').sort((a, b) => a[1] - b[1]).slice(0, 2).map(([k]) => labels[k]);
-    const tasks = Object.entries(s.tasks || {}).map(([id, t]) => `<tr><td>${esc(id.replace('_','-'))}</td><td>${typeof t.score === 'number' ? t.score : '未测评'}</td><td>${t.score_status === 'score_missing' ? '数据不足' : '已完成'}</td></tr>`).join('');
-    const report = document.querySelector('.completion'); if (!report) return;
-    report.className = 'report-v1'; report.innerHTML = `<header><h1>SEL社会情感学习测评报告</h1><p>本报告用于了解本次任务中的表现，不作诊断或常模判断。</p></header><section class="report-overview"><h2>测评概览</h2><p>儿童编号：${esc(s.participant?.id || '未记录')}</p><p>年龄：${esc(s.participant?.age || '未记录')}</p><p>完成时间：${esc(s.session?.end_time || new Date().toLocaleString())}</p><p>SEL总分：${total === null ? '数据不足，暂不生成' : total}</p></section><section><h2>五维表现</h2><div class="report-dimensions">${Object.entries(dims).map(([k, v]) => `<div><strong>${labels[k]}</strong><span>${v === null ? '未测评' : v}</span></div>`).join('')}</div><div class="report-radar">${Object.entries(dims).map(([k, v], i) => `<span style="--i:${i};--v:${v === null ? 0 : v / 2}" title="${labels[k]}：${v === null ? '未测评' : v}"></span>`).join('')}</div></section><section><h2>任务表现</h2><table><thead><tr><th>任务</th><th>得分</th><th>状态</th></tr></thead><tbody>${tasks}</tbody></table></section><section><h2>相对优势</h2><p>${strengths.length ? strengths.join('、') : '有效数据不足，暂不判断。'}</p><h2>需要支持的能力</h2><p>${needs.length ? needs.join('、') : '有效数据不足，暂不判断。'}</p><h2>教育支持建议</h2>${needs.length ? needs.map((name) => `<p>${Object.entries(labels).find(([, v]) => v === name)?.[0] ? templates[Object.entries(labels).find(([, v]) => v === name)[0]] : ''}</p>`).join('') : '<p>数据不足，暂不生成建议。</p>'}</section><footer><button id="report-json">导出原始JSON</button><button id="report-print">打印/保存报告</button><small>session_id：${esc(s.session?.session_id || '')}</small></footer>`;
-    document.querySelector('#report-json').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' })); a.download = 'SEL_report_raw.json'; a.click(); };
-    document.querySelector('#report-print').onclick = () => window.print();
+  const labels = {
+    self_awareness: '自我意识',
+    self_management: '自我管理',
+    social_awareness: '社会意识',
+    relationship_skills: '关系技能',
+    responsible_decision: '负责任决策'
+  };
+  const explanations = {
+    self_awareness: '反映儿童觉察和表达自身感受、理解感受原因，以及判断困难与支持需要的表现。',
+    self_management: '反映儿童在规则任务中保持注意、抑制冲动，以及受阻后调整并恢复参与的表现。',
+    social_awareness: '反映儿童理解他人情绪、观点和具体需要，并匹配支持行动的表现。',
+    relationship_skills: '反映儿童加入同伴活动、根据回应调整行为，以及进行轮流沟通的表现。',
+    responsible_decision: '反映儿童识别责任线索、选择建设性方案并判断直接后果的表现。'
+  };
+  const advice = {
+    self_awareness: '在日常事件后用简短问题帮助孩子说出感受及原因，并鼓励孩子具体说明自己能做什么、需要什么支持。',
+    self_management: '活动开始前提供清晰规则和视觉提示；受阻时给予短暂停顿、分步尝试和重新参与的机会。',
+    social_awareness: '结合绘本和生活情境练习观察他人的表情、信息和需要，再讨论什么帮助最贴合当下情境。',
+    relationship_skills: '在合作游戏中练习先观察和询问、等待轮次、倾听伙伴回应，并根据回应调整自己的行动。',
+    responsible_decision: '用生活故事练习识别问题、比较不同做法，并讨论这些做法对自己、他人和共同活动的直接影响。'
+  };
+  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const formatScore = (value) => typeof value === 'number' ? `${Number(value.toFixed(2))} / 2` : '—';
+  const formatTime = (value) => value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '';
+  const polygon = (values, radius, center = 180) => values.map((value, index) => {
+    const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
+    const r = radius * value / 2;
+    return `${center + Math.cos(angle) * r},${center + Math.sin(angle) * r}`;
+  }).join(' ');
+  function radar(dimensions) {
+    const keys = Object.keys(labels);
+    const values = keys.map((key) => dimensions[key]);
+    const rings = [0.4, 0.8, 1.2, 1.6, 2].map((value) => `<polygon points="${polygon(Array(5).fill(value), 125)}" fill="none" stroke="#d8e5e5"/>`).join('');
+    const axes = keys.map((_, index) => {
+      const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
+      return `<line x1="180" y1="180" x2="${180 + Math.cos(angle) * 125}" y2="${180 + Math.sin(angle) * 125}" stroke="#d8e5e5"/>`;
+    }).join('');
+    const text = keys.map((key, index) => {
+      const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
+      const x = 180 + Math.cos(angle) * 154;
+      const y = 180 + Math.sin(angle) * 146;
+      return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle">${labels[key]}</text>`;
+    }).join('');
+    return `<svg class="formal-radar" viewBox="0 0 360 360" role="img" aria-label="SEL五维能力雷达图">${rings}${axes}<polygon points="${polygon(values, 125)}" fill="rgba(73,139,132,.32)" stroke="#397f79" stroke-width="3"/>${text}</svg>`;
   }
-  window.addEventListener('message', (e) => { const d = e.data || {}; if (!['TASK_COMPLETE','SEL_T01_COMPLETE','SEL_ASSESSMENT_COMPLETE'].includes(d.type)) return; const s = read(); const payload = d.result || d.payload || {}; const rawId = String(d.taskId || d.task_id || payload.task || ''); const id = rawId === 'T01' ? `T01_${payload.part || 'A'}` : rawId.replace('-', '_'); const sid=payload.assessment_session_id||payload.session_id||''; if(s.session.assessment_session_id&&sid&&s.session.assessment_session_id!==sid)return; s.tasks[id] = { ...(s.tasks[id] || {}), ...payload }; if (payload.participant_id) s.participant = { ...s.participant, id: payload.participant_id, child_id: payload.participant_id }; if (sid) s.session = { ...s.session, session_id: sid, assessment_session_id: sid }; save(s); });
-  new MutationObserver(() => { const s = read(); if (document.querySelector('.completion') && Object.keys(s.tasks || {}).length) render(s); }).observe(document.body, { childList: true, subtree: true });
+  function participantId(session) {
+    return session?.participant?.child_id || session?.participant?.id || session?.participant?.participant_id || '';
+  }
+  function reportError(host, session, aggregate) {
+    console.error('[REPORT_SCORE_CHAIN_ERROR]', { participant_id: participantId(session), anomalies: aggregate.anomalies });
+    host.className = 'report-v1 report-error';
+    host.innerHTML = `<header><p class="report-kicker">SEL 社会情感学习测评</p><h1>报告生成异常</h1></header><section class="report-error-card"><h2>评分结果需要主试核验</h2><p>测评已结束，但评分汇总链路存在异常，系统未生成可能误导的正式报告。请由主试在开发日志中核对缺失的正式得分。</p><button id="report-print">打印当前提示</button></section>`;
+    host.querySelector('#report-print').onclick = () => window.print();
+  }
+  function render(session) {
+    const host = document.querySelector('.completion, .report-v1');
+    if (!host || !window.SELReportScores) return false;
+    const aggregate = window.SELReportScores.normalize(session);
+    if (!aggregate.valid) {
+      reportError(host, session, aggregate);
+      return false;
+    }
+    const ranked = Object.entries(aggregate.dimension_scores).sort((a, b) => b[1] - a[1]);
+    const strengths = ranked.slice(0, 2);
+    const support = [...ranked].reverse().slice(0, 2);
+    host.className = 'report-v1';
+    host.innerHTML = `<header><p class="report-kicker">正式测评结果</p><h1>SEL 社会情感学习测评报告</h1><p>本报告描述儿童在本次任务中的相对表现，不作诊断或常模判断。</p></header>
+      <section class="report-overview"><h2>测评概览</h2><div class="report-facts"><div><span>儿童编号</span><strong>${esc(participantId(session))}</strong></div><div><span>年龄</span><strong>${esc(session?.participant?.age)}</strong></div><div><span>完成时间</span><strong>${esc(formatTime(session?.session?.end_time))}</strong></div></div></section>
+      <section class="report-composite"><div><span>综合表现</span><strong>${formatScore(aggregate.total_score)}</strong><p>SEL 总分为五个维度正式得分的均值，量表范围为 0–2。</p></div></section>
+      <section><h2>五维能力画像</h2><div class="report-profile">${radar(aggregate.dimension_scores)}<div class="report-dimension-list">${Object.entries(aggregate.dimension_scores).map(([key, value]) => `<article><div><h3>${labels[key]}</h3><strong>${formatScore(value)}</strong></div><p>${explanations[key]}</p></article>`).join('')}</div></div></section>
+      <section class="report-two-column"><article><h2>相对优势</h2>${strengths.map(([key, value]) => `<h3>${labels[key]} · ${formatScore(value)}</h3><p>这是儿童在本次五维任务中的相对较高表现，可在日常学习和互动中继续提供运用机会。</p>`).join('')}</article><article><h2>需要支持的能力</h2>${support.map(([key, value]) => `<h3>${labels[key]} · ${formatScore(value)}</h3><p>这是儿童在本次任务中相对需要更多支持的方向，建议通过稳定、具体且可重复的情境练习逐步巩固。</p>`).join('')}</article></section>
+      <section><h2>教育支持建议</h2><div class="report-advice">${support.map(([key]) => `<article><h3>${labels[key]}</h3><p>${advice[key]}</p></article>`).join('')}</div></section>
+      <footer><button id="report-print">打印 / 保存报告</button><p>结果仅反映本次测评任务中的表现，不用于医学或心理诊断。</p></footer>`;
+    host.querySelector('#report-print').onclick = () => window.print();
+    return true;
+  }
+  window.SELReportV1 = { render };
 })();

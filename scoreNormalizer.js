@@ -25,7 +25,8 @@ export function normalizeTaskResult(taskId, rawResult = {}, context = {}) {
   } else if (taskId === 'T05') {
     const a = number(raw.T05A_score ?? raw.T05A?.score);
     const b = number(raw.T05B_score ?? raw.T05B?.score);
-    subscores = { T05A_score: a, T05B_score: b, T05_dimension_input: a !== null && b !== null ? (a + b) / 2 : null };
+    finalScore = a !== null && b !== null ? (a + b) / 2 : null;
+    subscores = { T05A_score: a, T05B_score: b, T05_dimension_input: finalScore };
   } else if (taskId === 'T06') {
     subscores = { T06A_score: number(raw.T06A_score), T06B_score: number(raw.T06B_score) };
     finalScore = mean([subscores.T06A_score, subscores.T06B_score]);
@@ -45,5 +46,5 @@ export function normalizeTaskResult(taskId, rawResult = {}, context = {}) {
     finalScore = number(raw.T04_score ?? raw.score);
     subscores = { A_score: number(raw.T04_strategy1_score), B_score: number(raw.T04_strategy2_score) };
   }
-  return { task_id: taskId, final_score: finalScore, score_status: statusOf(raw, finalScore, validity), validity, subscores, raw_result: raw, assessment_session_id: context.assessment_session_id || raw.assessment_session_id || null, participant_id: context.participant_id || raw.participant_id || null };
+  return { task_id: taskId, final_score: finalScore, ...(taskId === 'T05' ? { T05_score: finalScore } : {}), score_status: statusOf(raw, finalScore, validity), validity, subscores, raw_result: raw, assessment_session_id: context.assessment_session_id || raw.assessment_session_id || null, participant_id: context.participant_id || raw.participant_id || null };
 }
