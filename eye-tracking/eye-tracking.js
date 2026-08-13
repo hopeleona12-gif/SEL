@@ -77,13 +77,19 @@
         permissionStream.getTracks().forEach(track => track.stop());
         if (!live) throw new Error('camera_not_live');
         state.cameraStatus = 'granted';
-        global.webgazer.setRegressionModel('ridge').setGazeListener(data => {
+        const wg = global.webgazer;
+        if (typeof wg.begin !== 'function') throw new Error('webgazer_begin_unavailable');
+        if (typeof wg.setGazeListener !== 'function') throw new Error('webgazer_gaze_listener_unavailable');
+        if (typeof wg.setRegression === 'function') wg.setRegression('ridge');
+        wg.setGazeListener(data => {
           if (data && Number.isFinite(Number(data.x)) && Number.isFinite(Number(data.y))) {
             state.last = { x: Number(data.x), y: Number(data.y), timestamp: new Date().toISOString() };
           }
         });
-        await global.webgazer.begin();
-        global.webgazer.showVideoPreview(true).showPredictionPoints(true).showFaceOverlay(false);
+        await wg.begin();
+        if (typeof wg.showVideoPreview === 'function') wg.showVideoPreview(true);
+        if (typeof wg.showPredictionPoints === 'function') wg.showPredictionPoints(true);
+        if (typeof wg.showFaceOverlay === 'function') wg.showFaceOverlay(false);
         state.webgazerRunning = true;
         await waitForFirstGaze();
         state.initialized = true; state.eyeTrackingStatus = 'ready';
