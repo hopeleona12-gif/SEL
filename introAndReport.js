@@ -62,15 +62,18 @@
     shell.insertBefore(panel, frameSlot);
 
     let finished = false;
-    const go = () => {
+    const go = (event) => {
       if (finished) return;
       finished = true;
+      trace(event?.type === 'ended' ? 'intro_ended' : 'intro_continue');
+      trace('cleanup_started');
       cleanup?.();
       panel.remove();
       shell.dataset.introCompleted = '1';
       activePanel = null;
       activeShell = null;
-      window.__createActiveTaskFrame();
+      console.info('[INTRO_VIDEO]', { event: 'createActiveTaskFrame_called' });
+      window.dispatchEvent(new CustomEvent('MASTER_INTRO_COMPLETE'));
     };
     button.textContent = debug ? '跳过/继续测评' : '继续测评';
     const onLoadStart = () => trace('loadstart');
