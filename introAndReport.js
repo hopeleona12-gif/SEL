@@ -28,11 +28,10 @@
   const initIntro = (shell) => {
     if (!isT02Shell(shell) || shell === activeShell || shell.dataset.introCompleted === '1') return;
     clearIntro();
-    const frame = shell.querySelector('iframe');
-    if (!frame) return;
+    const frameSlot = shell.querySelector('.task-frame-slot');
+    if (!frameSlot || typeof window.__createActiveTaskFrame !== 'function') return;
 
     activeShell = shell;
-    const original = frame.src;
     const panel = document.createElement('div');
     panel.className = 'intro-panel';
     panel.innerHTML = '<video controls playsinline preload="metadata"></video><button>继续测评</button><p class="intro-error" hidden>引入视频加载失败，可继续测评。</p><pre class="intro-debug" hidden></pre>';
@@ -60,8 +59,7 @@
       }
     };
 
-    shell.insertBefore(panel, frame);
-    frame.style.display = 'none';
+    shell.insertBefore(panel, frameSlot);
 
     let finished = false;
     const go = () => {
@@ -69,20 +67,24 @@
       finished = true;
       cleanup?.();
       panel.remove();
-      frame.style.display = '';
-      frame.src = original;
       shell.dataset.introCompleted = '1';
       activePanel = null;
       activeShell = null;
+      window.__createActiveTaskFrame();
     };
     button.textContent = debug ? '跳过/继续测评' : '继续测评';
+    const onLoadStart = () => trace('loadstart');
+    const onLoadedMetadata = () => trace('loadedmetadata', { duration: video.duration });
+    const onCanPlay = () => trace('canplay', { duration: video.duration });
+    const onError = () => { trace('error'); error.hidden = false; };
+    const onPlay = () => { video.controls = false; };
     button.addEventListener('click', go);
     video.addEventListener('ended', go);
-    video.addEventListener('loadstart', () => trace('loadstart'));
-    video.addEventListener('loadedmetadata', () => trace('loadedmetadata', { duration: video.duration }));
-    video.addEventListener('canplay', () => trace('canplay', { duration: video.duration }));
-    video.addEventListener('error', () => { trace('error'); error.hidden = false; });
-    video.addEventListener('play', () => { video.controls = false; }, { once: true });
+    video.addEventListener('loadstart', onLoadStart);
+    video.addEventListener('loadedmetadata', onLoadedMetadata);
+    video.addEventListener('canplay', onCanPlay);
+    video.addEventListener('error', onError);
+    video.addEventListener('play', onPlay, { once: true });
 
     trace('intro_created');
     video.src = INTRO_VIDEO;
@@ -91,6 +93,12 @@
     trace('load_called');
     cleanup = () => {
       button.removeEventListener('click', go);
+      video.removeEventListener('ended', go);
+      video.removeEventListener('loadstart', onLoadStart);
+      video.removeEventListener('loadedmetadata', onLoadedMetadata);
+      video.removeEventListener('canplay', onCanPlay);
+      video.removeEventListener('error', onError);
+      video.removeEventListener('play', onPlay);
       video.pause();
       video.removeAttribute('src');
       video.load();
