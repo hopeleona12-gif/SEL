@@ -6,6 +6,8 @@
     if (!raw) return;
     sent = true;
     const result = JSON.parse(raw);
+    result.T05A_score = result.T05A?.score ?? null;
+    result.T05B_score = result.T05B?.score ?? null;
     result.T05_score = null;
     result.T05_score_status = 'score_missing';
     window.parent.postMessage({ source: 'sel-task', type: 'TASK_COMPLETE', taskId: 'T05', result }, '*');
