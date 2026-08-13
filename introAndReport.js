@@ -1,5 +1,6 @@
 (() => {
   const INTRO_VIDEO = '/tasks/intro/%E8%BF%9B%E5%85%A5%E6%B8%B8%E6%88%8F.mp4';
+  const debug = new URLSearchParams(location.search).get('debug') === '1';
   let activeShell = null;
   let activePanel = null;
   let activeObserver = null;
@@ -34,14 +35,31 @@
     const original = frame.src;
     const panel = document.createElement('div');
     panel.className = 'intro-panel';
-    panel.innerHTML = '<video controls playsinline preload="metadata"></video><button>继续测评</button><p class="intro-error" hidden>引入视频加载失败，可继续测评。</p>';
+    panel.innerHTML = '<video controls playsinline preload="metadata"></video><button>继续测评</button><p class="intro-error" hidden>引入视频加载失败，可继续测评。</p><pre class="intro-debug" hidden></pre>';
     const video = panel.querySelector('video');
     const button = panel.querySelector('button');
     const error = panel.querySelector('.intro-error');
-    if (!video || !button || !error) return;
+    const debugBox = panel.querySelector('.intro-debug');
+    if (!video || !button || !error || !debugBox) return;
 
-    video.src = INTRO_VIDEO;
-    video.load();
+    const trace = (event, extra = {}) => {
+      const state = {
+        event,
+        src: video.getAttribute('src') || '',
+        actual_src: video.src || '',
+        currentSrc: video.currentSrc || '',
+        readyState: video.readyState,
+        networkState: video.networkState,
+        video_error: video.error ? `${video.error.code}:${video.error.message || ''}` : '',
+        ...extra
+      };
+      console.info('[INTRO_VIDEO]', state);
+      if (debug) {
+        debugBox.hidden = false;
+        debugBox.textContent += `${JSON.stringify(state)}\n`;
+      }
+    };
+
     shell.insertBefore(panel, frame);
     frame.style.display = 'none';
 
@@ -57,11 +75,20 @@
       activePanel = null;
       activeShell = null;
     };
-    button.textContent = new URLSearchParams(location.search).get('debug') === '1' ? '跳过/继续测评' : '继续测评';
+    button.textContent = debug ? '跳过/继续测评' : '继续测评';
     button.addEventListener('click', go);
     video.addEventListener('ended', go);
-    video.addEventListener('error', () => { error.hidden = false; });
+    video.addEventListener('loadstart', () => trace('loadstart'));
+    video.addEventListener('loadedmetadata', () => trace('loadedmetadata', { duration: video.duration }));
+    video.addEventListener('canplay', () => trace('canplay', { duration: video.duration }));
+    video.addEventListener('error', () => { trace('error'); error.hidden = false; });
     video.addEventListener('play', () => { video.controls = false; }, { once: true });
+
+    trace('intro_created');
+    video.src = INTRO_VIDEO;
+    trace('src_assigned');
+    video.load();
+    trace('load_called');
     cleanup = () => {
       button.removeEventListener('click', go);
       video.pause();
