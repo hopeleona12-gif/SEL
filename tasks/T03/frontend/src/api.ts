@@ -1,8 +1,16 @@
 const API = '/api/v1'
 async function request<T>(path:string, init?:RequestInit):Promise<T>{
-  const started=performance.now();const response=await fetch(`${API}${path}`,{headers:{'Content-Type':'application/json'},...init});console.info('[T03 API]',path,response.status,`${Math.round(performance.now()-started)}ms`)
-  if(!response.ok) throw new Error((await response.json()).detail ?? `请求失败（${response.status}）`)
-  return response.json()
+  let lastError:unknown
+  for(let attempt=1;attempt<=3;attempt++){
+    const started=performance.now(),controller=new AbortController(),timeout=window.setTimeout(()=>controller.abort(),15000)
+    try{
+      const response=await fetch(`${API}${path}`,{headers:{'Content-Type':'application/json'},...init,signal:controller.signal});console.info('[T03 API]',path,response.status,`${Math.round(performance.now()-started)}ms`,`attempt=${attempt}`)
+      if(!response.ok) throw new Error((await response.json().catch(()=>({}))).detail ?? `请求失败（${response.status}）`)
+      return response.json()
+    }catch(error){lastError=error;if(attempt<3)await new Promise(resolve=>window.setTimeout(resolve,600*attempt))}
+    finally{window.clearTimeout(timeout)}
+  }
+  throw lastError instanceof Error?lastError:new Error('连接任务服务失败')
 }
 export const api={
   health:()=>request<{status:string}>('/health'),

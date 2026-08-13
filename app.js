@@ -8,7 +8,7 @@ function info(){render('<main class="shell"><h2>儿童基本信息</h2><form id=
 async function loadTask(id){
   clearInterval(timer); window.dispatchEvent(new CustomEvent('MASTER_TASK_STARTED',{detail:{taskId:id}}));
   eyeTrackingService.start(['T05','T06','T07','T08'].includes(id)?id:null);
-  const url=entrypointFor(id),deferFrame=id==='T02',deferT03=id==='T03';
+  const url=entrypointFor(id),deferFrame=false,deferT03=id==='T03';
   const body=deferFrame||deferT03?'<div class="task-frame-slot"></div>':`<iframe class="task-frame" src="${url}" title="${id}" allow="autoplay; microphone"></iframe>`;
   render(`<main class="task-shell"><div class="task-meta"><strong>当前任务：${id}</strong><span>第 ${manager.currentTaskIndex+1}/${TASK_SEQUENCE.length} 项</span></div>${body}<p id="taskPreparing" class="muted" ${deferT03?'':'hidden'}>任务准备中…</p><p id="err" class="error" hidden>任务加载失败。主试可重新加载或跳过并记录失败。</p><div class="task-recovery"><button id="retryTask">重新加载当前任务</button><button id="skipFailedTask">跳过并记录 task_failed</button></div></main>`);
   frame=deferFrame||deferT03?null:document.querySelector('iframe'); let done=false,frameCreated=!!frame;
