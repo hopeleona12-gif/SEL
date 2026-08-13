@@ -1,1 +1,1 @@
-{"name":"sel-assessment-master","private":true,"scripts":{"start":"node server.js","check":"node --check server.js && node --check app.js && node --check introAndReport.js","smoke":"node scripts/smoke-test.js"},"engines":{"node":">=18"}}
+{"name":"sel-assessment-master","private":true,"scripts":{"start":"node server.js","check":"node --check server.js && node --check app.js && node --check introAndReport.js","smoke":"node scripts/smoke-test.js"},"dependencies":{"pg":"^8.16.3"},"engines":{"node":">=18"}}
