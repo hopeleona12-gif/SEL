@@ -3,10 +3,10 @@
   const map = { self_awareness: ['T02', 'T01_A', 'T01_B'], self_management: ['T03', 'T04'], social_awareness: ['T05', 'T06'], relationship_skills: ['T07', 'T08'], responsible_decision: ['T09', 'T10'] };
   const labels = { self_awareness: '自我意识', self_management: '自我管理', social_awareness: '社会意识', relationship_skills: '关系技能', responsible_decision: '负责任决策' };
   const templates = { self_awareness: '继续鼓励儿童说出自己的感受，并尝试说明是什么事情带来这种感受。', self_management: '任务前先用简短规则和视觉提示帮助儿童准备，受阻时给出短暂停顿和重新尝试的机会。', social_awareness: '在日常活动中练习识别他人的需要，并把需要和具体帮助方式联系起来。', relationship_skills: '通过轮流、等待、询问和根据同伴回应调整行动，练习更清楚、友好的互动。', responsible_decision: '在生活故事中练习识别问题、比较不同做法，并说出做法可能带来的直接结果。' };
-  const read = () => JSON.parse(localStorage.getItem(key) || '{"tasks":{},"participant":{}}');
+  const read = () => JSON.parse(localStorage.getItem(key) || '{"tasks":{},"participant":{},"session":{}}');
   const save = (s) => localStorage.setItem(key, JSON.stringify(s));
   const score = (t) => typeof t?.score === 'number' ? t.score : typeof t?.T02_total_score === 'number' ? t.T02_total_score : typeof t?.T08_total_score === 'number' ? t.T08_total_score : typeof t?.task_score === 'number' ? t.task_score : null;
-  const dimension = (ids, tasks) => { const values = ids.map((id) => score(tasks[id])).filter((v) => typeof v === 'number'); return values.length >= 1 ? Number((values.reduce((a, b) => a + b, 0) / values.length).toFixed(2)) : null; };
+  const dimension = () => null;
   const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   function render(s) {
     const dims = Object.fromEntries(Object.entries(map).map(([k, ids]) => [k, dimension(ids, s.tasks || {})]));
@@ -19,6 +19,6 @@
     document.querySelector('#report-json').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(s, null, 2)], { type: 'application/json' })); a.download = 'SEL_report_raw.json'; a.click(); };
     document.querySelector('#report-print').onclick = () => window.print();
   }
-  window.addEventListener('message', (e) => { const d = e.data || {}; if (!['TASK_COMPLETE','SEL_T01_COMPLETE','SEL_ASSESSMENT_COMPLETE'].includes(d.type)) return; const s = read(); const payload = d.result || d.payload || {}; const rawId = String(d.taskId || d.task_id || payload.task || ''); const id = rawId === 'T01' ? `T01_${payload.part || 'A'}` : rawId.replace('-', '_'); s.tasks[id] = { ...(s.tasks[id] || {}), ...payload }; if (payload.participant_id) s.participant = { ...s.participant, id: payload.participant_id }; if (payload.session_id || payload.assessment_session_id) s.session = { ...s.session, session_id: payload.session_id || payload.assessment_session_id }; save(s); });
+  window.addEventListener('message', (e) => { const d = e.data || {}; if (!['TASK_COMPLETE','SEL_T01_COMPLETE','SEL_ASSESSMENT_COMPLETE'].includes(d.type)) return; const s = read(); const payload = d.result || d.payload || {}; const rawId = String(d.taskId || d.task_id || payload.task || ''); const id = rawId === 'T01' ? `T01_${payload.part || 'A'}` : rawId.replace('-', '_'); const sid=payload.assessment_session_id||payload.session_id||''; if(s.session.assessment_session_id&&sid&&s.session.assessment_session_id!==sid)return; s.tasks[id] = { ...(s.tasks[id] || {}), ...payload }; if (payload.participant_id) s.participant = { ...s.participant, id: payload.participant_id, child_id: payload.participant_id }; if (sid) s.session = { ...s.session, session_id: sid, assessment_session_id: sid }; save(s); });
   new MutationObserver(() => { const s = read(); if (document.querySelector('.completion') && Object.keys(s.tasks || {}).length) render(s); }).observe(document.body, { childList: true, subtree: true });
 })();

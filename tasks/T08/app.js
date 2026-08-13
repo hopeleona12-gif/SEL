@@ -2,7 +2,8 @@ const $=s=>document.querySelector(s);
 const RESPONSE_MS=8000;
 const PREMATURE_SUBMIT_THRESHOLD=3;
 const sessionId=`T08-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-const baseRecord={session_id:sessionId,participant_id:'',task_id:'T08'};
+const baseRecord={session_id:sessionId,assessment_session_id:'',participant_id:'',age:'',group:'',task_id:'T08'};
+window.addEventListener('message',e=>{if(e.data?.type!=='MASTER_SESSION_INIT')return;const p=e.data.participant||{};baseRecord.assessment_session_id=e.data.assessment_session_id||e.data.session_id||'';baseRecord.participant_id=p.child_id||p.id||'';baseRecord.age=p.age||'';baseRecord.group=p.group||''});
 const steps={
   P0:{kind:'instruction',video:'T08-P0.mp4',audio:'T08-P0_20260803_22310108.mp3',next:'PRACTICE'},
   PRACTICE:{kind:'practice',video:'T08-P1.mp4',audio:'T08-P1_20260803_22310054.mp3',frame:'T08-P1.png',options:['苹果','香蕉','橙子','其他','不知道'],next:'A1'},

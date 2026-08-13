@@ -3,8 +3,9 @@ const keyFor = id => id.replace('-', '_');
 const now = () => new Date().toISOString();
 
 export function createSession(participant) {
+  const assessment_session_id = crypto.randomUUID();
   const tasks = Object.fromEntries(TASK_SEQUENCE.map(id => [keyFor(id), {}]));
-  return { participant: { ...participant }, session: { session_id: crypto.randomUUID(), start_time: now(), end_time: '' }, tasks };
+  return { participant: { ...participant, child_id: participant.child_id || participant.id || '', group: participant.group || '' }, assessment_session_id, session: { session_id: assessment_session_id, assessment_session_id, start_time: now(), end_time: '' }, tasks };
 }
 
 export class TaskManager {

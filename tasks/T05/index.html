@@ -7,6 +7,7 @@
 <main class="app"><header class="top"><div><div class="brand">T05 · 小伙伴心里怎么想</div><div class="sub">社会意识｜他人情绪—原因理解与观点采择</div></div></header><section class="stage" id="stage" aria-live="polite"></section></main>
 <aside class="fac"><button id="facBtn">施测控制</button><div class="panel" id="facPanel"><label>参与者编号</label><input id="pid" value="DEMO-001"><label>当前支持等级</label><select id="hint"><option>P0</option><option>P1</option><option>P2</option><option>P3</option></select><label><input type="checkbox" id="manualInv" style="width:auto"> 本题通道/施测无效</label></div></aside>
 <script>
+window.addEventListener('message',e=>{if(e.data?.type==='MASTER_SESSION_INIT'){const p=e.data.participant||{};document.querySelector('#pid').value=p.child_id||p.id||'';window.__MASTER_SESSION__={assessment_session_id:e.data.assessment_session_id||e.data.session_id||'',age:p.age||'',group:p.group||''}}});
 const A='assets/';
 const steps=[
  {id:'intro',type:'intro',video:'intro.mp4',audio:'intro.mp3'},

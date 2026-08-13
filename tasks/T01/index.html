@@ -17,6 +17,7 @@
   const cause=[['task_event','刚才任务发生的事'],['other_people','别人说/做的事'],['task_difficulty','任务太难/太容易'],['sensory_uncomfortable','声音或画面不舒服'],['thought_other','想到别的事情'],['unknown_other','不知道/其他']];
   const blank=()=>({response_type:'',channel:'',raw_response:'',asr_text:'',asr_provider:'browser_prototype',asr_status:'not_started',aac_choice:'',prompt_level:'P0',score:null,score_status:'pending_review',validity:'pending',invalid_reason:'',question_shown_at:'',answer_started_at:'',answer_ended_at:'',latency_ms:null,response_duration_ms:null,audio_evidence_id:'',audio_mime_type:'',audio_size_bytes:0,sound_detected:false,support_card_used:false,cause_link:'',events:[]});
   const data={task:'T01',part,participant_id:'',assessment_session_id:'',source_task:part==='A'?'T04':'T08',source_record_id:'',source_score_locked:false,emotion:blank(),cause:blank(),timestamp:'',version:'prototype-2026-08-11'};
+  window.addEventListener('message',e=>{if(e.data?.type!=='MASTER_SESSION_INIT')return;data.participant_id=e.data.participant?.child_id||e.data.participant?.id||'';data.assessment_session_id=e.data.assessment_session_id||e.data.session_id||''});
   let activeAudio=null,stream=null,recorder=null,chunks=[];
   const media=n=>A+n;
   function mount(el){el.classList.add('visual');app.appendChild(el);requestAnimationFrame(()=>requestAnimationFrame(()=>{el.classList.add('active');[...app.querySelectorAll('.visual')].filter(x=>x!==el).forEach(x=>{x.classList.remove('active');setTimeout(()=>x.remove(),460)})}));return el}
