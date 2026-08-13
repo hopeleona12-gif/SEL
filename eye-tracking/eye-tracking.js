@@ -5,6 +5,8 @@
   const state = {
     calibrationStatus: localStorage.getItem('sel.eye.calibration_status') || 'not_started',
     initialized: false, initializing: null, webgazerRunning: false, cameraStatus: 'not_started',
+    webgazerLoaded: false, beginCalled: false, beginResolved: false,
+    listenerRegistered: false, firstGazeReceived: false, exactError: '',
     sessionId: null, taskId: null, sceneId: null, startedAt: null, collecting: false,
     timer: null, samples: [], last: null, saved: false, eyeTrackingStatus: 'not_started',
     aoiRegions: [], taskViewport: null
@@ -70,8 +72,11 @@
       state.initializing = (async () => {
         if (!global.isSecureContext) throw new Error('camera_requires_secure_context');
         if (!navigator.mediaDevices?.getUserMedia) throw new Error('camera_api_unavailable');
+        state.webgazerLoaded = Boolean(global.webgazer);
         if (!global.webgazer) throw new Error('webgazer_not_loaded');
         state.cameraStatus = 'requesting'; state.eyeTrackingStatus = 'initializing'; state.last = null;
+        state.beginCalled = false; state.beginResolved = false; state.listenerRegistered = false;
+        state.firstGazeReceived = false; state.exactError = '';
         const permissionStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
         const live = permissionStream.getVideoTracks().some(track => track.readyState === 'live');
         permissionStream.getTracks().forEach(track => track.stop());
@@ -84,19 +89,24 @@
         wg.setGazeListener(data => {
           if (data && Number.isFinite(Number(data.x)) && Number.isFinite(Number(data.y))) {
             state.last = { x: Number(data.x), y: Number(data.y), timestamp: new Date().toISOString() };
+            state.firstGazeReceived = true;
           }
         });
-        await wg.begin();
+        state.listenerRegistered = true;
+        state.beginCalled = true;
+        const beginPromise = Promise.resolve(wg.begin()).then(() => { state.beginResolved = true; });
         if (typeof wg.showVideoPreview === 'function') wg.showVideoPreview(true);
         if (typeof wg.showPredictionPoints === 'function') wg.showPredictionPoints(true);
         if (typeof wg.showFaceOverlay === 'function') wg.showFaceOverlay(false);
+        const firstGazePromise = waitForFirstGaze();
+        await Promise.race([beginPromise, firstGazePromise]);
+        await firstGazePromise;
         state.webgazerRunning = true;
-        await waitForFirstGaze();
         state.initialized = true; state.eyeTrackingStatus = 'ready';
         return api.status();
       })().catch(error => {
         state.initialized = false; state.webgazerRunning = false; state.cameraStatus = 'failed';
-        state.eyeTrackingStatus = 'failed'; throw error;
+        state.eyeTrackingStatus = 'failed'; state.exactError = String(error?.stack || error?.message || error); throw error;
       }).finally(() => { state.initializing = null; });
       return state.initializing;
     },
@@ -131,6 +141,9 @@
     setAOIRegions(regions) { state.aoiRegions = Array.isArray(regions) ? regions : []; },
     status() {
       return { calibrationStatus: state.calibrationStatus, cameraStatus: state.cameraStatus,
+        webgazerLoaded: state.webgazerLoaded, beginCalled: state.beginCalled,
+        beginResolved: state.beginResolved, listenerRegistered: state.listenerRegistered,
+        firstGazeReceived: state.firstGazeReceived, exactError: state.exactError,
         initialized: state.initialized, webgazerRunning: state.webgazerRunning,
         eyeTrackingStatus: state.eyeTrackingStatus, collecting: state.collecting,
         sampleCount: state.samples.length, savedIndexedDB: state.saved, currentGaze: state.last,
