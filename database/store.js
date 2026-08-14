@@ -3,6 +3,17 @@ const pool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env
 const fs = require('node:fs');
 const path = require('node:path');
 const nil = v => v === undefined || v === '' ? null : v;
+const nullableNumeric = v => {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  if (typeof v !== 'string' || !v.trim()) return null;
+  const n = Number(v.trim());
+  return Number.isFinite(n) ? n : null;
+};
+const nullableInteger = v => {
+  const n = nullableNumeric(v);
+  return n !== null && Number.isInteger(n) ? n : null;
+};
 const jsonb = v => v === undefined || v === null ? null : JSON.stringify(v);
 const pick = (o, ...keys) => { for (const k of keys) if (o && o[k] !== undefined) return o[k]; return null; };
 function rows(payload) {
@@ -11,14 +22,14 @@ function rows(payload) {
   for (const [key, raw] of Object.entries(tasks)) {
     if (!raw || typeof raw !== 'object' || Object.keys(raw).length === 0) continue;
     const r = raw || {}, taskId = r.task_id || key.replace('_','-');
-    const score = typeof r.final_score === 'number' ? r.final_score : typeof r.score === 'number' ? r.score : null;
-    taskRows.push({ session_id:s.session_id, task_id:taskId, start_time:nil(r.start_time), completed_at:nil(r.end_time || r.completed_at), task_duration_ms:nil(r.task_duration_ms), score, score_status:r.score_status || (score === null ? 'score_missing' : 'available'), validity:r.validity || null, subscores:r.subscores || null, a_score:pick(r,'A_score','T06A_score'), b_score:pick(r,'B_score','T06B_score') });
+    const score = nullableNumeric(r.final_score !== undefined ? r.final_score : r.score);
+    taskRows.push({ session_id:s.session_id, task_id:taskId, start_time:nil(r.start_time), completed_at:nil(r.end_time || r.completed_at), task_duration_ms:nullableInteger(r.task_duration_ms), score, score_status:r.score_status || (score === null ? 'score_missing' : 'available'), validity:r.validity || null, subscores:r.subscores || null, a_score:nullableNumeric(pick(r,'A_score','T06A_score')), b_score:nullableNumeric(pick(r,'B_score','T06B_score')) });
     const records = [].concat(r.records || r.responses || r.speech_records || r.raw_result?.records || []);
     if (r.emotion && typeof r.emotion === 'object') records.push({ ...r.emotion, step_id: 'emotion', item_type: 'emotion' });
     if (r.cause && typeof r.cause === 'object') records.push({ ...r.cause, step_id: 'cause', item_type: 'cause' });
-    records.forEach((x, i) => responseRows.push({ session_id:s.session_id, task_id:taskId, step_id:String(pick(x,'step_id','trial_id') || `record-${i+1}`), step_order:pick(x,'step_order') ?? i+1, context:nil(x.context), item_type:nil(x.item_type), stimulus_id:nil(x.stimulus_id), choice:x.choice ?? x.selected_option ?? null, transcript:nil(x.transcript || x.asr_text), response_mode:nil(x.response_mode), response_time_ms:pick(x,'response_time_ms','reaction_time'), attempt_count:pick(x,'attempt_count'), error_count:pick(x,'error_count'), prompt_level:nil(x.prompt_level), model_score:pick(x,'model_score','score'), confidence:pick(x,'confidence'), next_action:nil(x.next_action), semantic_class:nil(x.semantic_class), api_status:nil(x.api_status), audio_file:nil(x.audio_file), audio_url:nil(x.audio_url), eye_tracking_session_id:nil(x.eye_tracking_session_id), created_at:x.created_at || new Date().toISOString() }));
+    records.forEach((x, i) => responseRows.push({ session_id:s.session_id, task_id:taskId, step_id:String(pick(x,'step_id','trial_id') || `record-${i+1}`), step_order:nullableInteger(pick(x,'step_order')) ?? i+1, context:nil(x.context), item_type:nil(x.item_type), stimulus_id:nil(x.stimulus_id), choice:x.choice ?? x.selected_option ?? null, transcript:nil(x.transcript || x.asr_text), response_mode:nil(x.response_mode), response_time_ms:nullableInteger(pick(x,'response_time_ms','reaction_time')), attempt_count:nullableInteger(pick(x,'attempt_count')), error_count:nullableInteger(pick(x,'error_count')), prompt_level:nil(x.prompt_level), model_score:nullableNumeric(pick(x,'model_score','score')), confidence:nullableNumeric(pick(x,'confidence')), next_action:nil(x.next_action), semantic_class:nil(x.semantic_class), api_status:nil(x.api_status), audio_file:nil(x.audio_file), audio_url:nil(x.audio_url), eye_tracking_session_id:nil(x.eye_tracking_session_id), created_at:x.created_at || new Date().toISOString() }));
   }
-  return {participant:{child_id:p.child_id || p.id, child_name:p.child_name || p.name, age_at_assessment:p.age_at_assessment ?? p.age, participant_group:p.participant_group || p.group}, session:{session_id:s.session_id, child_id:p.child_id || p.id, start_time:s.start_time, completed_at:s.completed_at || s.end_time || null, session_status:s.session_status || (s.end_time ? 'completed':'in_progress')}, taskRows, responseRows};
+  return {participant:{child_id:p.child_id || p.id, child_name:p.child_name || p.name, age_at_assessment:nullableNumeric(p.age_at_assessment ?? p.age), participant_group:p.participant_group || p.group}, session:{session_id:s.session_id, child_id:p.child_id || p.id, start_time:s.start_time, completed_at:s.completed_at || s.end_time || null, session_status:s.session_status || (s.end_time ? 'completed':'in_progress')}, taskRows, responseRows};
 }
 async function save(payload) {
   if (!pool) throw new Error('DATABASE_URL is not configured');
