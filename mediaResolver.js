@@ -4,6 +4,7 @@
   if (global.SELMedia) return;
 
   const CDN_ORIGIN = 'https://media.seltest2026.xyz';
+  const IMAGE_ORIGIN = 'https://seltest2026-media-hk.oss-cn-hongkong.aliyuncs.com';
   const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
   const MEDIA_EXTENSION = /\.(?:png|jpe?g|webp|gif|mp4|mp3|wav|m4a|webm|ogg)(?:$|[?#])/i;
   const EXCLUDED_PATH = /(?:^|\/)(?:api|data\/audio)(?:\/|$)/i;
@@ -47,13 +48,18 @@
     const local = sameOriginUrl(value);
     if (!enabled || !local) return { primary: value, fallback: null };
     const cdn = new URL(CDN_ORIGIN);
-    cdn.pathname = canonicalMediaPath(local.pathname);
-    cdn.search = local.search;
-    if (!loggedUrls.has(cdn.href)) {
-      loggedUrls.add(cdn.href);
-      mediaLog('MEDIA_CDN_URL', { cdn_url: cdn.href, fallback_url: local.href });
+    const canonicalPath = canonicalMediaPath(local.pathname);
+    const isImage = /\.(?:png|jpe?g|webp|gif)(?:$|[?#])/i.test(local.pathname);
+    const primary = isImage ? new URL(IMAGE_ORIGIN + canonicalPath) : cdn;
+    primary.search = local.search;
+    if (!loggedUrls.has(primary.href)) {
+      loggedUrls.add(primary.href);
+      mediaLog(isImage ? 'MEDIA_IMAGE_URL' : 'MEDIA_CDN_URL', {
+        primary_url: primary.href,
+        fallback_url: local.href,
+      });
     }
-    return { primary: cdn.href, fallback: local.href };
+    return { primary: primary.href, fallback: local.href };
   }
 
   function armFallback(element, fallback) {
@@ -126,6 +132,7 @@
 
   global.SELMedia = Object.freeze({
     cdnOrigin: CDN_ORIGIN,
+    imageOrigin: IMAGE_ORIGIN,
     enabled,
     resolve(value) { return describe(value).primary; },
     fallback(value) { return describe(value).fallback; },
