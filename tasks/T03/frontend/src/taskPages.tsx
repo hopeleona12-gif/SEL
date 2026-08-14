@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 
 import { api } from './api'
 import { useAssessment } from './context'
-import { preloadTaskAssets } from './engine/assetPreloader'
 import { Phase } from './types'
 
 function Shell({children}:{children:ReactNode}){
@@ -49,9 +48,6 @@ export function Home(){
 export function Rule(){
   const {task,sessionId}=useAssessment()
   const nav=useNavigate()
-  useEffect(()=>{
-    if(task)preloadTaskAssets(task).catch(()=>undefined)
-  },[task])
   if(!task||!sessionId)return <Missing/>
   return <Shell>
     <h1 className="text-3xl font-bold mb-6">听一听游戏规则</h1>

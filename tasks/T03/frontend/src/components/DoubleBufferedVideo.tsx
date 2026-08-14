@@ -34,6 +34,7 @@ export function DoubleBufferedVideo({ src, nextSrc, transitionMs = 140 }: Props)
         const preloadIndex = (activeLayerRef.current === 0 ? 1 : 0) as VideoLayer
         const preloadVideo = layers[preloadIndex]
         if (layerSourcesRef.current[preloadIndex] !== nextSrc) {
+          preloadVideo.preload = 'metadata'
           preloadVideo.src = nextSrc
           layerSourcesRef.current[preloadIndex] = nextSrc
           preloadVideo.load()
@@ -48,17 +49,26 @@ export function DoubleBufferedVideo({ src, nextSrc, transitionMs = 140 }: Props)
     const nextVideo = layers[nextIndex]
     let switchTimer = 0
 
-    const prepare = (video: HTMLVideoElement, layer: VideoLayer, url: string) =>
+    const prepare = (
+      video: HTMLVideoElement,
+      layer: VideoLayer,
+      url: string,
+      priority: 'current' | 'next',
+    ) =>
       new Promise<void>((resolve, reject) => {
+        const readyState = priority === 'current'
+          ? HTMLMediaElement.HAVE_CURRENT_DATA
+          : HTMLMediaElement.HAVE_METADATA
+        const readyEvent = priority === 'current' ? 'loadeddata' : 'loadedmetadata'
         if (
           layerSourcesRef.current[layer] === url
-          && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA
+          && video.readyState >= readyState
         ) {
           resolve()
           return
         }
         const cleanup = () => {
-          video.removeEventListener('loadeddata', onReady)
+          video.removeEventListener(readyEvent, onReady)
           video.removeEventListener('error', onError)
         }
         const onReady = () => {
@@ -70,7 +80,8 @@ export function DoubleBufferedVideo({ src, nextSrc, transitionMs = 140 }: Props)
           reject(new Error(`Unable to preload distractor video: ${url}`))
         }
         video.pause()
-        video.addEventListener('loadeddata', onReady, { once: true })
+        video.preload = priority === 'current' ? 'auto' : 'metadata'
+        video.addEventListener(readyEvent, onReady, { once: true })
         video.addEventListener('error', onError, { once: true })
         video.src = url
         layerSourcesRef.current[layer] = url
@@ -78,7 +89,7 @@ export function DoubleBufferedVideo({ src, nextSrc, transitionMs = 140 }: Props)
       })
 
     const reveal = async () => {
-      await prepare(nextVideo, nextIndex, src)
+      await prepare(nextVideo, nextIndex, src, 'current')
       if (sequence !== switchSequenceRef.current) return
       try {
         nextVideo.currentTime = 0
@@ -94,7 +105,7 @@ export function DoubleBufferedVideo({ src, nextSrc, transitionMs = 140 }: Props)
         if (sequence !== switchSequenceRef.current) return
         previousVideo.pause()
         if (nextSrc && nextSrc !== src) {
-          void prepare(previousVideo, previousIndex, nextSrc).catch(() => undefined)
+          void prepare(previousVideo, previousIndex, nextSrc, 'next').catch(() => undefined)
         }
       }, transitionMs + 40)
     }
@@ -118,7 +129,7 @@ export function DoubleBufferedVideo({ src, nextSrc, transitionMs = 140 }: Props)
       data-active={visible && activeLayer === 0}
       muted
       playsInline
-      preload="auto"
+      preload="metadata"
       aria-hidden="true"
       className={layerClass(0)}
       style={{ transitionDuration: `${transitionMs}ms` }}
@@ -129,7 +140,7 @@ export function DoubleBufferedVideo({ src, nextSrc, transitionMs = 140 }: Props)
       data-active={visible && activeLayer === 1}
       muted
       playsInline
-      preload="auto"
+      preload="metadata"
       aria-hidden="true"
       className={layerClass(1)}
       style={{ transitionDuration: `${transitionMs}ms` }}

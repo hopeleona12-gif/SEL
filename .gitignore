@@ -18,6 +18,9 @@ tasks/**/database/*.sqlite*
 # Formal task media must be deployed. Generated participant recordings remain
 # excluded by the data/audio and data/records rules above.
 tasks/T03/frontend/public/
+!tasks/T03/frontend/public/
+tasks/T03/frontend/public/*
+!tasks/T03/frontend/public/master-adapter.js
 tasks/T03/frontend/dist/prototype-t03/
 tasks/T03/prototype-t03/
 tasks/T07/public/

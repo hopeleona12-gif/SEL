@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 
 import { api } from './api'
 import { useAssessment } from './context'
-import { preloadTaskAssets } from './engine/assetPreloader'
 import { playNarration } from './engine/speech'
 
 function Shell({ children }: { children: ReactNode }) {
@@ -32,7 +31,6 @@ export function Home() {
     try {
       setError('')
       const task = await api.task('T03')
-      void preloadTaskAssets(task).catch(() => undefined)
       await api.child(childId, age)
       const session = await api.createSession(childId)
       assessment.setTask(task)
@@ -59,9 +57,6 @@ export function Home() {
 export function Rule() {
   const { task, sessionId } = useAssessment()
   const navigate = useNavigate()
-  useEffect(() => {
-    if (task) preloadTaskAssets(task).catch(() => undefined)
-  }, [task])
   if (!task || !sessionId) return <Missing />
 
   return <Shell>

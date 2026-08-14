@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { api } from '../api'
 import { Phase, TaskConfig, Trial } from '../types'
-import { preloadTaskAssets } from './assetPreloader'
+import { preloadCurrentTrial, preloadNextTrial } from './assetPreloader'
 import { playNarration } from './speech'
 
 export type TrialStage =
@@ -76,7 +76,7 @@ export function useTrialRunner({ phase, task, sessionId, onComplete }: RunnerOpt
   const [clicked, setClicked] = useState(false)
   const [practiceFeedback, setPracticeFeedback] = useState<'correct' | 'incorrect' | null>(null)
   const [error, setError] = useState('')
-  const [assetsReady, setAssetsReady] = useState(false)
+  const [readyTrialKey, setReadyTrialKey] = useState('')
   const responseRef = useRef<RecordedResponse>({
     actual_response: 'no_click',
     response_time: null,
@@ -88,18 +88,27 @@ export function useTrialRunner({ phase, task, sessionId, onComplete }: RunnerOpt
 
   useEffect(() => {
     let active = true
-    preloadTaskAssets(task)
-      .then(() => active && setAssetsReady(true))
+    const trial = trials[index]
+    if (!trial) {
+      setReadyTrialKey(`complete:${index}`)
+      return () => { active = false }
+    }
+    setStage('loading')
+    preloadCurrentTrial(task, trial)
+      .then(() => active && setReadyTrialKey(`${phase}:${index}:${practiceAttempt}`))
       .catch(reason => {
         if (!active) return
         setError(reason instanceof Error ? reason.message : '素材预加载失败')
         setStage('error')
       })
     return () => { active = false }
-  }, [task])
+  }, [index, phase, practiceAttempt, task, trials])
 
   useEffect(() => {
-    if (!assetsReady || completedRef.current) return
+    const expectedReadyKey = index >= trials.length
+      ? `complete:${index}`
+      : `${phase}:${index}:${practiceAttempt}`
+    if (readyTrialKey !== expectedReadyKey || completedRef.current) return
     const controller = new AbortController()
     const { signal } = controller
 
@@ -135,6 +144,7 @@ export function useTrialRunner({ phase, task, sessionId, onComplete }: RunnerOpt
         soundClockRef.current = sound.clock
         soundOnsetRef.current = sound.timestamp
         setStage('response')
+        void preloadNextTrial(task, trials[index + 1])
         await delay(task.timing.response_window_ms, signal)
 
         const expectedResponse = trial.stimulus === 'dong' ? 'click' : 'no_click'
@@ -182,7 +192,7 @@ export function useTrialRunner({ phase, task, sessionId, onComplete }: RunnerOpt
 
     run()
     return () => controller.abort()
-  }, [assetsReady, index, onComplete, phase, practiceAttempt, sessionId, task, trials])
+  }, [index, onComplete, phase, practiceAttempt, readyTrialKey, sessionId, task, trials])
 
   const respond = useCallback(() => {
     if (stage !== 'response' || clicked) return
