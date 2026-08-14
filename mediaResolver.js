@@ -114,6 +114,7 @@
   patchSrcSetter(HTMLMediaElement.prototype);
 
   const nativeSetAttribute = Element.prototype.setAttribute;
+  const nativeInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
   Element.prototype.setAttribute = function setAttribute(name, value) {
     if (String(name).toLowerCase() === 'src'
       && (this instanceof HTMLImageElement || this instanceof HTMLMediaElement)) {
@@ -123,6 +124,18 @@
     }
     return nativeSetAttribute.call(this, name, value);
   };
+
+  // Some legacy tasks create <video src="...mp4"> through innerHTML.
+  // Rewrite only MP4 source attributes here; image and audio URLs remain unchanged.
+  if (nativeInnerHTML?.get && nativeInnerHTML?.set && !nativeInnerHTML.set.__selMediaPatched) {
+    const setInnerHTML = function setMediaInnerHTML(value) {
+      const html = String(value).replace(/(\bsrc\s*=\s*["'])([^"']+\.mp4(?:[?#][^"']*)?)(["'])/gi,
+        (match, prefix, source, suffix) => `${prefix}${describe(source).primary}${suffix}`);
+      nativeInnerHTML.set.call(this, html);
+    };
+    setInnerHTML.__selMediaPatched = true;
+    Object.defineProperty(Element.prototype, 'innerHTML', { ...nativeInnerHTML, set: setInnerHTML });
+  }
 
   global.SELMedia = Object.freeze({
     cdnOrigin: CDN_ORIGIN,
