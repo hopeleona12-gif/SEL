@@ -1,3 +1,118 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Eye Tracking Debug</title><style>body{font-family:Arial,"Microsoft YaHei",sans-serif;margin:20px;color:#243b36}.panel{padding:12px 16px;background:#eef5f2;border-radius:12px;line-height:2}.aoi{position:absolute;padding:25px;background:#dcefe8;border:2px solid #3d9f83}.gaze-dot{position:fixed;width:14px;height:14px;border:3px solid #fff;border-radius:50%;background:#e94f37;box-shadow:0 0 0 2px #e94f37;transform:translate(-50%,-50%);pointer-events:none;z-index:99999;display:none}button{margin:8px;padding:9px 15px}button:disabled{opacity:.5}#stage{height:45vh;position:relative;border:1px solid #aaa;margin-top:12px}#message,#exactError{font-weight:bold}</style></head><body><script src="https://webgazer.cs.brown.edu/webgazer.js"></script><script src="eye-tracking.js"></script><h2>Eye Tracking Debug</h2><div class="panel">calibration_status: <b id="calibration">not_started</b> | camera: <b id="camera">not_started</b> | WebGazer: <b id="running">false</b><br>webgazer loaded: <b id="loaded">no</b> | listener registered: <b id="listener">no</b> | begin called: <b id="beginCalled">no</b> | begin resolved: <b id="beginResolved">no</b> | first gaze received: <b id="firstGaze">no</b><br>eye_tracking_status: <b id="tracking">not_started</b> | gaze_x / gaze_y: <b id="gaze">—</b> | AOI: <b id="aoi">—</b><br>samples: <b id="samples">0</b> | IndexedDB saved: <b id="saved">no</b><br>exact error: <b id="exactError">—</b><br><span id="message">点击 Start，浏览器将请求摄像头权限。</span></div><button id="start">Start</button><button id="stop" disabled>Stop &amp; Save</button><button id="export">Export JSON</button><div id="stage"><div class="aoi" data-gaze-aoi="missing_part" style="left:8%;top:15%">missing_part</div><div class="aoi" data-gaze-aoi="windmill" style="left:38%;top:35%">windmill</div><div class="aoi" data-gaze-aoi="material_area" style="left:68%;top:55%">material_area</div></div><i id="dot" class="gaze-dot"></i><script>
-(()=>{const $=id=>document.getElementById(id),start=$('start'),stop=$('stop'),dot=$('dot'),message=$('message');function paint(){const s=EyeTracking.status();$('calibration').textContent=s.calibrationStatus;$('camera').textContent=s.cameraStatus;$('running').textContent=String(s.webgazerRunning);$('loaded').textContent=s.webgazerLoaded?'yes':'no';$('listener').textContent=s.listenerRegistered?'yes':'no';$('beginCalled').textContent=s.beginCalled?'yes':'no';$('beginResolved').textContent=s.beginResolved?'yes':'no';$('firstGaze').textContent=s.firstGazeReceived?'yes':'no';$('exactError').textContent=s.exactError||'—';$('tracking').textContent=s.eyeTrackingStatus;$('samples').textContent=s.sampleCount;$('saved').textContent=s.savedIndexedDB?'yes':'no';if(s.currentGaze){$('gaze').textContent=`${s.currentGaze.x.toFixed(1)} / ${s.currentGaze.y.toFixed(1)}`;$('aoi').textContent=s.currentAOI||'other';dot.style.left=s.currentGaze.x+'px';dot.style.top=s.currentGaze.y+'px';dot.style.display='block'}else{$('gaze').textContent='—';$('aoi').textContent='—';dot.style.display='none'}}setInterval(paint,100);start.onclick=async()=>{start.disabled=true;message.textContent='正在请求摄像头权限并启动 WebGazer…';try{await EyeTracking.init({taskId:'DEBUG'});if(EyeTracking.status().calibrationStatus==='not_started')EyeTracking.setCalibrationStatus('debug_ready');await EyeTracking.startWindow({taskId:'DEBUG',sceneId:'demo'});stop.disabled=false;message.textContent='采集中：请移动视线，确认 gaze 和 samples 持续变化。'}catch(error){message.textContent='eye_tracking_status=failed';$('exactError').textContent=String(error?.stack||error?.message||error);start.disabled=false;stop.disabled=true}};stop.onclick=async()=>{stop.disabled=true;try{const result=await EyeTracking.stopWindow();if(result.eye_tracking_status==='captured')message.textContent=`保存成功：${result.samples.length} samples，IndexedDB=yes`;else{message.textContent=`eye_tracking_status=${result.eye_tracking_status}，未保存有效采集`;start.disabled=false}}catch(error){message.textContent='eye_tracking_status=save_failed';$('exactError').textContent=String(error?.stack||error?.message||error);start.disabled=false}};$('export').onclick=()=>EyeTracking.exportJson().catch(error=>$('exactError').textContent=String(error?.stack||error?.message||error));paint()})();
-</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Eye Tracking Debug</title>
+  <style>
+    body{font-family:Arial,"Microsoft YaHei",sans-serif;margin:20px;color:#243b36}
+    .panel{padding:12px 16px;background:#eef5f2;border-radius:12px;line-height:2}
+    .aoi{position:absolute;padding:25px;background:#dcefe8;border:2px solid #3d9f83}
+    .gaze-dot{position:fixed;width:14px;height:14px;border:3px solid #fff;border-radius:50%;background:#e94f37;box-shadow:0 0 0 2px #e94f37;transform:translate(-50%,-50%);pointer-events:none;z-index:99999;display:none}
+    button{margin:8px;padding:9px 15px}
+    button:disabled{opacity:.5}
+    #stage{height:45vh;position:relative;border:1px solid #aaa;margin-top:12px}
+    #message,#exactError{font-weight:bold}
+  </style>
+  <script>
+    window.addEventListener('error', event => {
+      window.__webgazerLoadError = event.error?.stack || event.message || 'unknown script error';
+    });
+  </script>
+</head>
+<body>
+  <script src="vendor/webgazer.js"></script>
+  <script src="eye-tracking.js"></script>
+  <h2>Eye Tracking Debug</h2>
+  <div class="panel">
+    calibration_status: <b id="calibration">not_started</b> | camera: <b id="camera">not_started</b> | WebGazer: <b id="running">false</b><br>
+    webgazer loaded: <b id="loaded">no</b> | listener registered: <b id="listener">no</b> | begin called: <b id="beginCalled">no</b> | begin resolved: <b id="beginResolved">no</b> | first gaze received: <b id="firstGaze">no</b><br>
+    eye_tracking_status: <b id="tracking">not_started</b> | gaze_x / gaze_y: <b id="gaze">—</b> | AOI: <b id="aoi">—</b><br>
+    samples: <b id="samples">0</b> | IndexedDB saved: <b id="saved">no</b><br>
+    exact error: <b id="exactError">—</b><br>
+    <span id="message">点击 Start，浏览器将请求摄像头权限。</span>
+  </div>
+  <button id="start">Start</button>
+  <button id="stop" disabled>Stop &amp; Save</button>
+  <button id="export">Export JSON</button>
+  <div id="stage">
+    <div class="aoi" data-gaze-aoi="missing_part" style="left:8%;top:15%">missing_part</div>
+    <div class="aoi" data-gaze-aoi="windmill" style="left:38%;top:35%">windmill</div>
+    <div class="aoi" data-gaze-aoi="material_area" style="left:68%;top:55%">material_area</div>
+  </div>
+  <i id="dot" class="gaze-dot"></i>
+  <script>
+    (() => {
+      const $ = id => document.getElementById(id);
+      const start = $('start');
+      const stop = $('stop');
+      const dot = $('dot');
+      const message = $('message');
+
+      function paint() {
+        const s = EyeTracking.status();
+        $('calibration').textContent = s.calibrationStatus;
+        $('camera').textContent = s.cameraStatus;
+        $('running').textContent = String(s.webgazerRunning);
+        $('loaded').textContent = s.webgazerLoaded ? 'yes' : 'no';
+        $('listener').textContent = s.listenerRegistered ? 'yes' : 'no';
+        $('beginCalled').textContent = s.beginCalled ? 'yes' : 'no';
+        $('beginResolved').textContent = s.beginResolved ? 'yes' : 'no';
+        $('firstGaze').textContent = s.firstGazeReceived ? 'yes' : 'no';
+        $('exactError').textContent = s.exactError || window.__webgazerLoadError || '—';
+        $('tracking').textContent = s.eyeTrackingStatus;
+        $('samples').textContent = s.sampleCount;
+        $('saved').textContent = s.savedIndexedDB ? 'yes' : 'no';
+        if (s.currentGaze) {
+          $('gaze').textContent = `${s.currentGaze.x.toFixed(1)} / ${s.currentGaze.y.toFixed(1)}`;
+          $('aoi').textContent = s.currentAOI || 'other';
+          dot.style.left = s.currentGaze.x + 'px';
+          dot.style.top = s.currentGaze.y + 'px';
+          dot.style.display = 'block';
+        } else {
+          $('gaze').textContent = '—';
+          $('aoi').textContent = '—';
+          dot.style.display = 'none';
+        }
+      }
+
+      setInterval(paint, 100);
+      start.onclick = async () => {
+        start.disabled = true;
+        message.textContent = '正在请求摄像头权限并启动 WebGazer…';
+        try {
+          await EyeTracking.init({ taskId: 'DEBUG' });
+          if (EyeTracking.status().calibrationStatus === 'not_started') EyeTracking.setCalibrationStatus('debug_ready');
+          await EyeTracking.startWindow({ taskId: 'DEBUG', sceneId: 'demo' });
+          stop.disabled = false;
+          message.textContent = '采集中：请移动视线并在画面不同位置点击几次，确认 gaze 和 samples 持续变化。';
+        } catch (error) {
+          message.textContent = 'eye_tracking_status=failed';
+          $('exactError').textContent = String(error?.stack || error?.message || error);
+          start.disabled = false;
+          stop.disabled = true;
+        }
+      };
+      stop.onclick = async () => {
+        stop.disabled = true;
+        try {
+          const result = await EyeTracking.stopWindow();
+          if (result.eye_tracking_status === 'captured') message.textContent = `保存成功：${result.samples.length} samples，IndexedDB=yes`;
+          else {
+            message.textContent = `eye_tracking_status=${result.eye_tracking_status}，未保存有效采集`;
+            start.disabled = false;
+          }
+        } catch (error) {
+          message.textContent = 'eye_tracking_status=save_failed';
+          $('exactError').textContent = String(error?.stack || error?.message || error);
+          start.disabled = false;
+        }
+      };
+      $('export').onclick = () => EyeTracking.exportJson().catch(error => {
+        $('exactError').textContent = String(error?.stack || error?.message || error);
+      });
+      paint();
+    })();
+  </script>
+</body>
+</html>
